@@ -3,5 +3,5 @@
 # print(b)
 
 
-a=input("enter your string")
-print(a)
+# a=input("enter your string")
+# print(a)
