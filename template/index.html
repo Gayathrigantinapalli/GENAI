@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Local GenAI PDF Search</title>
+
+</head>
+
+<body>
+
+    <h1>Local GenAI PDF Question Answering</h1>
+
+    <input
+        type="text"
+        id="question"
+        placeholder="Enter your question"
+        size="60"
+    >
+
+    <button onclick="askQuestion()">
+        Ask
+    </button>
+
+
+    <pre id="result"></pre>
+
+
+    <script>
+
+        async function askQuestion() {
+
+            const question =
+                document.getElementById(
+                    "question"
+                ).value;
+
+
+            const response =
+                await fetch(
+                    "/ask",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            question: question
+                        })
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            document.getElementById(
+                "result"
+            ).textContent =
+                JSON.stringify(
+                    data,
+                    null,
+                    4
+                );
+        }
+
+    </script>
+
+</body>
+
+</html>
