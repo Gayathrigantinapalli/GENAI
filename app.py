@@ -1,378 +1,389 @@
-from flask import Flask, request, jsonify, render_template
-from pypdf import PdfReader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
-from transformers import pipeline
-import numpy as np
+# from flask import Flask, request, jsonify, render_template
+# from pypdf import PdfReader
+# from langchain_text_splitters import RecursiveCharacterTextSplitter
+# from sentence_transformers import SentenceTransformer
+# from transformers import pipeline
+# import numpy as np
 
 
-app = Flask(__name__)
+# app = Flask(__name__)
 
 
-# ============================================================
-# 1. LOAD MODELS
-# ============================================================
+# # ============================================================
+# # 1. LOAD MODELS
+# # ============================================================
 
-print("Loading embedding model...")
+# print("Loading embedding model...")
 
-embedding_model = SentenceTransformer(
-    "all-MiniLM-L6-v2"
-)
+# embedding_model = SentenceTransformer(
+#     "all-MiniLM-L6-v2"
+# )
 
-print("Loading local LLM...")
+# print("Loading local LLM...")
 
-generator = pipeline(
-    "text-generation",
-    model="distilgpt2"
-)
+# generator = pipeline(
+#     "text-generation",
+#     model="distilgpt2"
+# )
 
-print("Models loaded successfully.")
+# print("Models loaded successfully.")
 
 
-# ============================================================
-# 2. EXTRACT TEXT FROM PDF
-# ============================================================
+# # ============================================================
+# # 2. EXTRACT TEXT FROM PDF
+# # ============================================================
 
-def extract_text(pdf_file):
+# def extract_text(pdf_file):
 
-    reader = PdfReader(pdf_file)
+#     reader = PdfReader(pdf_file)
 
-    text = ""
+#     text = ""
 
-    for page in reader.pages:
+#     for page in reader.pages:
 
-        page_text = page.extract_text()
+#         page_text = page.extract_text()
 
-        if page_text:
-            text += page_text + "\n"
+#         if page_text:
+#             text += page_text + "\n"
 
-    return text
+#     return text
 
 
-# ============================================================
-# 3. CREATE CHUNKS
-# ============================================================
+# # ============================================================
+# # 3. CREATE CHUNKS
+# # ============================================================
 
-def create_chunks(pdf_file):
+# def create_chunks(pdf_file):
 
-    print(f"Processing: {pdf_file}")
+#     print(f"Processing: {pdf_file}")
 
-    text = extract_text(pdf_file)
+#     text = extract_text(pdf_file)
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=100
-    )
+#     splitter = RecursiveCharacterTextSplitter(
+#         chunk_size=500,
+#         chunk_overlap=100
+#     )
 
-    chunks = splitter.split_text(text)
+#     chunks = splitter.split_text(text)
 
-    results = []
+#     results = []
 
-    for i, chunk in enumerate(chunks, start=1):
+#     for i, chunk in enumerate(chunks, start=1):
 
-        results.append({
-            "file_name": pdf_file,
-            "chunk_name": f"chunk_{i}",
-            "chunk_number": i,
-            "text": chunk
-        })
+#         results.append({
+#             "file_name": pdf_file,
+#             "chunk_name": f"chunk_{i}",
+#             "chunk_number": i,
+#             "text": chunk
+#         })
 
-    return results
+#     return results
 
 
-# ============================================================
-# 4. LOAD PDF FILES
-# ============================================================
+# # ============================================================
+# # 4. LOAD PDF FILES
+# # ============================================================
 
-pdf_files = [
-    "xyz.pdf",
-    "abc.pdf"
-]
+# pdf_files = [
+#     "xyz.pdf",
+#     "abc.pdf"
+# ]
 
 
-all_chunks = []
+# all_chunks = []
 
 
-for pdf in pdf_files:
+# for pdf in pdf_files:
 
-    chunks = create_chunks(pdf)
+#     chunks = create_chunks(pdf)
 
-    all_chunks.extend(chunks)
+#     all_chunks.extend(chunks)
 
 
-print("\nTotal chunks:", len(all_chunks))
+# print("\nTotal chunks:", len(all_chunks))
 
 
-# ============================================================
-# 5. CREATE EMBEDDINGS FOR ALL CHUNKS
-# ============================================================
+# # ============================================================
+# # 5. CREATE EMBEDDINGS FOR ALL CHUNKS
+# # ============================================================
 
-print("\nCreating embeddings...")
+# print("\nCreating embeddings...")
 
 
-texts = [
-    item["text"]
-    for item in all_chunks
-]
+# texts = [
+#     item["text"]
+#     for item in all_chunks
+# ]
 
 
-embeddings = embedding_model.encode(
-    texts,
-    convert_to_numpy=True
-)
+# embeddings = embedding_model.encode(
+#     texts,
+#     convert_to_numpy=True
+# )
 
 
-for i, item in enumerate(all_chunks):
+# for i, item in enumerate(all_chunks):
 
-    item["embedding"] = embeddings[i]
+#     item["embedding"] = embeddings[i]
 
 
-print("Embeddings created successfully.")
+# print("Embeddings created successfully.")
 
 
-# ============================================================
-# 6. COSINE SIMILARITY
-# ============================================================
+# # ============================================================
+# # 6. COSINE SIMILARITY
+# # ============================================================
 
-def cosine_similarity(a, b):
+# def cosine_similarity(a, b):
 
-    dot_product = np.dot(a, b)
+#     dot_product = np.dot(a, b)
 
-    magnitude_a = np.linalg.norm(a)
+#     magnitude_a = np.linalg.norm(a)
 
-    magnitude_b = np.linalg.norm(b)
+#     magnitude_b = np.linalg.norm(b)
 
-    if magnitude_a == 0 or magnitude_b == 0:
-        return 0
+#     if magnitude_a == 0 or magnitude_b == 0:
+#         return 0
 
-    return dot_product / (
-        magnitude_a * magnitude_b
-    )
+#     return dot_product / (
+#         magnitude_a * magnitude_b
+#     )
 
 
-# ============================================================
-# 7. SEARCH BEST CHUNK
-# ============================================================
+# # ============================================================
+# # 7. SEARCH BEST CHUNK
+# # ============================================================
 
-def search_documents(question):
+# def search_documents(question):
 
-    # Create embedding for user question
+#     # Create embedding for user question
 
-    question_embedding = embedding_model.encode(
-        question,
-        convert_to_numpy=True
-    )
+#     question_embedding = embedding_model.encode(
+#         question,
+#         convert_to_numpy=True
+#     )
 
 
-    results = []
+#     results = []
 
 
-    for item in all_chunks:
+#     for item in all_chunks:
 
-        score = cosine_similarity(
-            question_embedding,
-            item["embedding"]
-        )
+#         score = cosine_similarity(
+#             question_embedding,
+#             item["embedding"]
+#         )
 
 
-        results.append({
-            "file_name": item["file_name"],
-            "chunk_name": item["chunk_name"],
-            "chunk_number": item["chunk_number"],
-            "text": item["text"],
-            "score": float(score)
-        })
+#         results.append({
+#             "file_name": item["file_name"],
+#             "chunk_name": item["chunk_name"],
+#             "chunk_number": item["chunk_number"],
+#             "text": item["text"],
+#             "score": float(score)
+#         })
 
 
-    # Highest similarity first
+#     # Highest similarity first
 
-    results.sort(
-        key=lambda x: x["score"],
-        reverse=True
-    )
+#     results.sort(
+#         key=lambda x: x["score"],
+#         reverse=True
+#     )
 
 
-    return results
+#     return results
 
 
-# ============================================================
-# 8. GENERATE ANSWER USING LOCAL LLM
-# ============================================================
+# # ============================================================
+# # 8. GENERATE ANSWER USING LOCAL LLM
+# # ============================================================
 
-def generate_answer(question, context):
+# def generate_answer(question, context):
 
-    prompt = f"""
-Answer the question using only the context below.
+#     prompt = f"""
+# Answer the question using only the context below.
 
-Context:
-{context}
+# Context:
+# {context}
 
-Question:
-{question}
+# Question:
+# {question}
 
-Answer:
-"""
+# Answer:
+# """
 
 
-    result = generator(
-        prompt,
-        max_new_tokens=100,
-        num_return_sequences=1,
-        do_sample=False
-    )
+#     result = generator(
+#         prompt,
+#         max_new_tokens=100,
+#         num_return_sequences=1,
+#         do_sample=False
+#     )
 
 
-    generated_text = result[0]["generated_text"]
+#     generated_text = result[0]["generated_text"]
 
 
-    # Remove prompt from response
+#     # Remove prompt from response
 
-    if "Answer:" in generated_text:
+#     if "Answer:" in generated_text:
 
-        answer = generated_text.split(
-            "Answer:"
-        )[-1].strip()
+#         answer = generated_text.split(
+#             "Answer:"
+#         )[-1].strip()
 
-    else:
+#     else:
 
-        answer = generated_text
+#         answer = generated_text
 
 
-    return answer
+#     return answer
 
 
-# ============================================================
-# 9. HOME PAGE
-# ============================================================
+# # ============================================================
+# # 9. HOME PAGE
+# # ============================================================
 
-@app.route("/")
-def home():
+# @app.route("/")
+# def home():
 
-    return render_template(
-        "index.html"
-    )
+#     return render_template(
+#         "index.html"
+#     )
 
 
-# ============================================================
-# 10. ASK API
-# ============================================================
+# # ============================================================
+# # 10. ASK API
+# # ============================================================
 
-@app.route("/ask", methods=["POST"])
-def ask():
+# @app.route("/ask", methods=["POST"])
+# def ask():
 
-    try:
+#     try:
 
-        data = request.get_json()
+#         data = request.get_json()
 
-        question = data.get(
-            "question",
-            ""
-        ).strip()
+#         question = data.get(
+#             "question",
+#             ""
+#         ).strip()
 
 
-        if not question:
+#         if not question:
 
-            return jsonify({
-                "error": "Question is required"
-            }), 400
+#             return jsonify({
+#                 "error": "Question is required"
+#             }), 400
 
 
-        # Search documents
+#         # Search documents
 
-        results = search_documents(
-            question
-        )
+#         results = search_documents(
+#             question
+#         )
 
 
-        # Best result
+#         # Best result
 
-        best_result = results[0]
+#         best_result = results[0]
 
 
-        score = best_result["score"]
+#         score = best_result["score"]
 
 
-        # ----------------------------------------------------
-        # Threshold
-        # ----------------------------------------------------
+#         # ----------------------------------------------------
+#         # Threshold
+#         # ----------------------------------------------------
 
-        if score < 0.4:
+#         if score < 0.4:
 
-            return jsonify({
+#             return jsonify({
 
-                "question": question,
+#                 "question": question,
 
-                "message":
-                    "No relevant document found",
+#                 "message":
+#                     "No relevant document found",
 
-                "best_score": round(
-                    score,
-                    4
-                )
+#                 "best_score": round(
+#                     score,
+#                     4
+#                 )
 
-            })
+#             })
 
 
-        # ----------------------------------------------------
-        # Context
-        # ----------------------------------------------------
+#         # ----------------------------------------------------
+#         # Context
+#         # ----------------------------------------------------
 
-        context = best_result["text"]
+#         context = best_result["text"]
 
 
-        # ----------------------------------------------------
-        # Generate answer
-        # ----------------------------------------------------
+#         # ----------------------------------------------------
+#         # Generate answer
+#         # ----------------------------------------------------
 
-        answer = generate_answer(
-            question,
-            context
-        )
+#         answer = generate_answer(
+#             question,
+#             context
+#         )
 
 
-        # ----------------------------------------------------
-        # Response
-        # ----------------------------------------------------
+#         # ----------------------------------------------------
+#         # Response
+#         # ----------------------------------------------------
 
-        return jsonify({
+#         return jsonify({
 
-            "question": question,
+#             "question": question,
 
-            "answer": answer,
+#             "answer": answer,
 
-            "file_name":
-                best_result["file_name"],
+#             "file_name":
+#                 best_result["file_name"],
 
-            "chunk_name":
-                best_result["chunk_name"],
+#             "chunk_name":
+#                 best_result["chunk_name"],
 
-            "chunk_number":
-                best_result["chunk_number"],
+#             "chunk_number":
+#                 best_result["chunk_number"],
 
-            "similarity_score":
-                round(score, 4),
+#             "similarity_score":
+#                 round(score, 4),
 
-            "context":
-                best_result["text"]
+#             "context":
+#                 best_result["text"]
 
-        })
+#         })
 
 
-    except Exception as e:
+#     except Exception as e:
 
-        return jsonify({
-            "error": str(e)
-        }), 500
+#         return jsonify({
+#             "error": str(e)
+#         }), 500
 
 
-# ============================================================
-# 11. RUN FLASK
-# ============================================================
+# # ============================================================
+# # 11. RUN FLASK
+# # ============================================================
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    app.run(
-        host="127.0.0.1",
-        port=5000,
-        debug=True
-    )
+#     app.run(
+#         host="127.0.0.1",
+#         port=5000,
+#         debug=True
+#     )
+
+
+
+
+
+a=input("enter your string ")
+b=a[::-1]
+if a==b:
+    print("polindm")
+else:
+    print("not a polindm")
